@@ -55,7 +55,7 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
   }
 
   return (
-    <div className="import-panel">
+    <div className="card glass">
       <h2>Import Tally Excel Export</h2>
       <div className="form-grid">
         <label>
@@ -78,7 +78,7 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
         </div>
       </div>
       {error && (
-        <p className="error-text" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <p className="error-text">
           <WarningCircle size={16} weight="bold" />
           {error}
         </p>
@@ -86,56 +86,57 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
 
       {parsed.length > 0 && (
         <>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          <p className="hint-text">
             Review the {parsed.length} parsed rows below and fix anything before importing. Tally
             exports sometimes include stray header or subtotal rows.
           </p>
-          <div className="table-wrap">
-            <table className="stock-table">
-              <thead>
-                <tr>
-                  <th>Item Name</th>
-                  <th>Unit</th>
-                  <th>Tally Qty</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {parsed.map((row, i) => (
-                  <tr key={i}>
-                    <td>
-                      <input
-                        value={row.itemName}
-                        onChange={(e) => updateRow(i, 'itemName', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <input value={row.unit} onChange={(e) => updateRow(i, 'unit', e.target.value)} />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={row.tallyQty}
-                        onChange={(e) => updateRow(i, 'tallyQty', e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <button type="button" className="icon-btn" onClick={() => removeRow(i)} aria-label="Remove row">
-                        <Trash size={16} />
-                      </button>
-                    </td>
+          <div className="table-wrap inset-panel">
+            <div className="table-scroll">
+              <table className="stock-table">
+                <thead>
+                  <tr>
+                    <th className="plain-head">Item Name</th>
+                    <th className="plain-head">Unit</th>
+                    <th className="plain-head">Tally Qty</th>
+                    <th className="plain-head"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {parsed.map((row, i) => (
+                    <tr key={i}>
+                      <td>
+                        <input
+                          value={row.itemName}
+                          onChange={(e) => updateRow(i, 'itemName', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input value={row.unit} onChange={(e) => updateRow(i, 'unit', e.target.value)} />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          value={row.tallyQty}
+                          onChange={(e) => updateRow(i, 'tallyQty', e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn-ghost icon-btn"
+                          onClick={() => removeRow(i)}
+                          aria-label="Remove row"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => void confirmImport()}
-            disabled={saving}
-            style={{ alignSelf: 'flex-start' }}
-          >
+          <button type="button" className="btn-primary self-start" onClick={() => void confirmImport()} disabled={saving}>
             <CheckCircle size={16} weight="bold" />
             {saving ? 'Importing...' : `Import ${parsed.length} items`}
           </button>

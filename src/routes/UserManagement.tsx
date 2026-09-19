@@ -67,15 +67,14 @@ export function UserManagement() {
 
   return (
     <>
-      <TopBar title="User Management">
-        <Link to="/admin" className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <ArrowLeft size={16} weight="bold" />
-          Dashboard
+      <TopBar title="Users">
+        <Link to="/admin" className="btn-ghost icon-btn" aria-label="Back to dashboard" title="Back to dashboard">
+          <ArrowLeft size={18} weight="bold" />
         </Link>
       </TopBar>
 
       <div className="page">
-        <form className="card" onSubmit={(e) => void handleCreate(e)}>
+        <form className="card glass" onSubmit={(e) => void handleCreate(e)}>
           <h2>Create a new user</h2>
           <div className="form-grid">
             <label>
@@ -105,19 +104,19 @@ export function UserManagement() {
             </label>
           </div>
           {createError && <p className="error-text">{createError}</p>}
-          <button type="submit" className="btn-primary" disabled={creating} style={{ alignSelf: 'flex-start' }}>
+          <button type="submit" className="btn-primary self-start" disabled={creating}>
             <UserPlus size={16} weight="bold" />
             {creating ? 'Creating...' : 'Create user'}
           </button>
         </form>
 
-        <div className="table-wrap">
+        <div className="table-wrap glass">
           <table className="stock-table">
             <thead>
               <tr>
-                <th>Full Name</th>
-                <th>Role</th>
-                <th></th>
+                <th className="plain-head">Full Name</th>
+                <th className="plain-head">Role</th>
+                <th className="plain-head"></th>
               </tr>
             </thead>
             <tbody>
@@ -134,7 +133,7 @@ export function UserManagement() {
                       />
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="inline-row">
                         <select
                           value={edit.role}
                           onChange={(e) => updateEdit(user.uid, { role: e.target.value as Role })}

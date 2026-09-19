@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { CubeFocus, WarningCircle } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export function Login() {
   const { login, firebaseUser, profile, loading } = useAuth()
@@ -29,9 +30,9 @@ export function Login() {
 
   return (
     <div className="page-center">
-      <div className="login-card">
+      <div className="login-card glass">
         <div className="login-icon">
-          <CubeFocus size={26} weight="bold" />
+          <CubeFocus size={27} weight="bold" />
         </div>
         <div className="login-heading">
           <h1>Stock Count</h1>
@@ -45,6 +46,7 @@ export function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              placeholder="you@company.com"
               required
             />
           </label>
@@ -55,19 +57,23 @@ export function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              placeholder="Your password"
               required
             />
           </label>
           {error && (
-            <p className="error-text" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <p className="error-text">
               <WarningCircle size={16} weight="bold" />
               {error}
             </p>
           )}
-          <button type="submit" className="btn-primary" disabled={submitting} style={{ justifyContent: 'center' }}>
+          <button type="submit" className="btn-primary" disabled={submitting}>
             {submitting ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
+        <div className="login-theme">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   )
