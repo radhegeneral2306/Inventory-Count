@@ -10,6 +10,32 @@ import { exportExcel, exportPdf } from '../lib/exportReport'
 import { ImportPanel } from './ImportPanel'
 import type { StockCount, StockItem, StockRow, StockSession, TallyQty } from '../types'
 
+type SortKey = 'itemName' | 'unit' | 'assignedSection' | 'tallyQty' | 'liveQty' | 'difference'
+type SortDirection = 'asc' | 'desc'
+
+const columns: { key: SortKey; label: string }[] = [
+  { key: 'itemName', label: 'Item' },
+  { key: 'unit', label: 'Unit' },
+  { key: 'assignedSection', label: 'Section' },
+  { key: 'tallyQty', label: 'Tally Qty' },
+  { key: 'liveQty', label: 'Live Count' },
+  { key: 'difference', label: 'Difference' },
+]
+
+function sortRows(rows: StockRow[], key: SortKey, direction: SortDirection): StockRow[] {
+  const sorted = [...rows].sort((a, b) => {
+    const aVal = a[key]
+    const bVal = b[key]
+    if (aVal === null) return bVal === null ? 0 : 1
+    if (bVal === null) return -1
+    if (typeof aVal === 'string' || typeof bVal === 'string') {
+      return String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' })
+    }
+    return aVal - bVal
+  })
+  return direction === 'asc' ? sorted : sorted.reverse()
+}
+
 export function AdminDashboard() {
   const { profile, logout } = useAuth()
   const [showImport, setShowImport] = useState(false)
@@ -62,6 +88,20 @@ export function AdminDashboard() {
   }, [items, tallyQuantities, counts])
 
   const currentSession = sessions.find((s) => s.id === sessionId)
+
+  const [sortKey, setSortKey] = useState<SortKey>('itemName')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+
+  const sortedRows = useMemo(() => sortRows(rows, sortKey, sortDirection), [rows, sortKey, sortDirection])
+
+  function handleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDirection('asc')
+    }
+  }
 
   return (
     <div className="page">
@@ -116,16 +156,20 @@ export function AdminDashboard() {
         <table className="stock-table">
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Unit</th>
-              <th>Section</th>
-              <th>Tally Qty</th>
-              <th>Live Count</th>
-              <th>Difference</th>
+              {columns.map((col) => (
+                <th key={col.key}>
+                  <button type="button" className="sort-button" onClick={() => handleSort(col.key)}>
+                    {col.label}
+                    <span className="sort-icon">
+                      {sortKey === col.key ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                    </span>
+                  </button>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {sortedRows.map((row) => (
               <tr key={row.id}>
                 <td>{row.itemName}</td>
                 <td>{row.unit}</td>
