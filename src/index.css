@@ -1460,3 +1460,61 @@ label {
 .dialog-actions button {
   flex: 1 1 0;
 }
+
+/* Stock group sections on the staff counting screen. */
+
+.count-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 680;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.group-heading:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  background: var(--hover-tint);
+}
+
+.group-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.group-count {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--hover-tint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.group-count.is-done {
+  color: var(--success);
+  background: var(--success-soft);
+}
+
+.row-muted {
+  opacity: 0.5;
+}

@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  where,
   writeBatch,
   type Unsubscribe,
 } from 'firebase/firestore'
@@ -45,6 +46,8 @@ export async function createSessionWithItems(
         itemName: item.itemName,
         unit: item.unit,
         assignedSection: null,
+        groupName: item.groupName,
+        sortIndex: item.sortIndex,
       })
       const tallyRef = doc(db, SESSIONS, sessionRef.id, 'tallyQuantities', itemRef.id)
       batch.set(tallyRef, { tallyQty: item.tallyQty })
@@ -69,12 +72,20 @@ export function listenSessions(cb: (sessions: StockSession[]) => void): Unsubscr
 
 export function listenStockItems(sessionId: string, cb: (items: StockItem[]) => void): Unsubscribe {
   return onSnapshot(collection(db, SESSIONS, sessionId, 'stockItems'), (snap) => {
-    cb(
-      snap.docs.map((d) => ({
+    const items = snap.docs.map((d) => {
+      const data = d.data()
+      return {
         id: d.id,
-        ...(d.data() as Omit<StockItem, 'id'>),
-      })),
-    )
+        itemName: data.itemName as string,
+        unit: (data.unit as string) ?? '',
+        assignedSection: (data.assignedSection as string | null) ?? null,
+        // Lists imported before groups existed carry neither field.
+        groupName: (data.groupName as string) ?? '',
+        sortIndex: (data.sortIndex as number) ?? 0,
+      }
+    })
+    items.sort((a, b) => a.sortIndex - b.sortIndex)
+    cb(items)
   })
 }
 
@@ -89,8 +100,19 @@ export function listenTallyQuantities(sessionId: string, cb: (rows: TallyQty[]) 
   })
 }
 
-export function listenStockCounts(sessionId: string, cb: (counts: StockCount[]) => void): Unsubscribe {
-  return onSnapshot(collection(db, SESSIONS, sessionId, 'stockCounts'), (snap) => {
+/**
+ * Staff may only read the counts they entered, and Firestore rejects any listen
+ * it cannot prove matches that rule, so the filter has to live in the query
+ * rather than only in the rules. Admin passes no filter and sees everything.
+ */
+export function listenStockCounts(
+  sessionId: string,
+  cb: (counts: StockCount[]) => void,
+  countedBy?: string,
+): Unsubscribe {
+  const counts = collection(db, SESSIONS, sessionId, 'stockCounts')
+  const scoped = countedBy ? query(counts, where('countedBy', '==', countedBy)) : counts
+  return onSnapshot(scoped, (snap) => {
     cb(
       snap.docs.map((d) => ({
         id: d.id,

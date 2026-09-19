@@ -81,6 +81,16 @@ const en = {
   cancel: 'Cancel',
   deleteFailed: 'Could not delete the list. Check your connection and try again.',
 
+  group: 'Group',
+  allGroups: 'All groups',
+  rowType: 'Type',
+  rowTypeItem: 'Item',
+  rowTypeGroup: 'Group heading',
+  parsedSummary: (groups: number, items: number) =>
+    `Found ${groups} stock groups and ${items} items.`,
+  reconcileWarning:
+    'Tally\u2019s own totals do not match the rows below, so some rows may be read wrong. Check the Type column before importing.',
+
   importTitle: 'Import Tally Excel export',
   listName: 'List name',
   file: 'File',
@@ -182,6 +192,16 @@ const roman: TranslationKeys = {
   cancel: 'Rehne dein',
   deleteFailed: 'List delete nahi hui. Internet check karke dobara try karein.',
 
+  group: 'Group',
+  allGroups: 'Saare groups',
+  rowType: 'Type',
+  rowTypeItem: 'Item',
+  rowTypeGroup: 'Group heading',
+  parsedSummary: (groups: number, items: number) =>
+    `${groups} stock group aur ${items} items mile.`,
+  reconcileWarning:
+    'Tally ke apne total neeche ki rows se match nahi ho rahe, toh kuch rows galat padhi ja sakti hain. Import se pehle Type column check karein.',
+
   importTitle: 'Tally Excel export import karein',
   listName: 'List ka naam',
   file: 'File',
@@ -280,6 +300,16 @@ const hi: TranslationKeys = {
   deleting: 'डिलीट हो रहा है...',
   cancel: 'रहने दें',
   deleteFailed: 'लिस्ट डिलीट नहीं हुई। इंटरनेट जांच कर दोबारा कोशिश करें।',
+
+  group: 'ग्रुप',
+  allGroups: 'सारे ग्रुप',
+  rowType: 'टाइप',
+  rowTypeItem: 'आइटम',
+  rowTypeGroup: 'ग्रुप हेडिंग',
+  parsedSummary: (groups: number, items: number) =>
+    `${groups} स्टॉक ग्रुप और ${items} आइटम मिले।`,
+  reconcileWarning:
+    'Tally के अपने टोटल नीचे की रो से मैच नहीं हो रहे, तो कुछ रो ग़लत पढ़ी जा सकती हैं। इम्पोर्ट से पहले टाइप कॉलम जांचें।',
 
   importTitle: 'Tally Excel export इम्पोर्ट करें',
   listName: 'लिस्ट का नाम',

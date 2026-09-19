@@ -21,6 +21,10 @@ export interface StockItem {
   itemName: string
   unit: string
   assignedSection: string | null
+  /** Tally stock group this item sits under. Empty on lists imported before groups existed. */
+  groupName: string
+  /** Position in the original Tally sheet, so the list keeps Tally's order. */
+  sortIndex: number
 }
 
 export interface TallyQty {
@@ -40,6 +44,7 @@ export interface StockRow {
   id: string
   itemName: string
   unit: string
+  groupName: string
   tallyQty: number
   liveQty: number | null
   difference: number | null

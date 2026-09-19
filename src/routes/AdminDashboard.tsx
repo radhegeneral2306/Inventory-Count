@@ -33,13 +33,13 @@ import { exportExcel, exportPdf } from '../lib/exportReport'
 import { ImportPanel } from './ImportPanel'
 import type { StockCount, StockItem, StockRow, StockSession, TallyQty } from '../types'
 
-type SortKey = 'itemName' | 'unit' | 'assignedSection' | 'tallyQty' | 'liveQty' | 'difference'
+type SortKey = 'itemName' | 'groupName' | 'unit' | 'tallyQty' | 'liveQty' | 'difference'
 type SortDirection = 'asc' | 'desc'
 
 const columnKeys: { key: SortKey; numeric?: boolean }[] = [
   { key: 'itemName' },
+  { key: 'groupName' },
   { key: 'unit' },
-  { key: 'assignedSection' },
   { key: 'tallyQty', numeric: true },
   { key: 'liveQty', numeric: true },
   { key: 'difference', numeric: true },
@@ -68,6 +68,7 @@ export function AdminDashboard() {
   const [tallyQuantities, setTallyQuantities] = useState<TallyQty[]>([])
   const [counts, setCounts] = useState<StockCount[]>([])
   const [search, setSearch] = useState('')
+  const [groupFilter, setGroupFilter] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('itemName')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -108,6 +109,7 @@ export function AdminDashboard() {
         id: item.id,
         itemName: item.itemName,
         unit: item.unit,
+        groupName: item.groupName,
         tallyQty,
         liveQty,
         difference: liveQty === null ? null : liveQty - tallyQty,
@@ -128,20 +130,27 @@ export function AdminDashboard() {
     }
   }, [rows])
 
+  const groupsInList = useMemo(() => {
+    const names = new Set(rows.map((r) => r.groupName).filter(Boolean))
+    return [...names].sort((a, b) => a.localeCompare(b))
+  }, [rows])
+
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const filtered = query
-      ? rows.filter((r) => r.itemName.toLowerCase().includes(query))
-      : rows
+    const filtered = rows.filter((r) => {
+      if (query && !r.itemName.toLowerCase().includes(query)) return false
+      if (groupFilter && r.groupName !== groupFilter) return false
+      return true
+    })
     return sortRows(filtered, sortKey, sortDirection)
-  }, [rows, search, sortKey, sortDirection])
+  }, [rows, search, groupFilter, sortKey, sortDirection])
 
   const currentSession = sessions.find((s) => s.id === sessionId)
 
   const columnLabels: Record<SortKey, string> = {
     itemName: t.item,
+    groupName: t.group,
     unit: t.unit,
-    assignedSection: t.section,
     tallyQty: t.tallyQty,
     liveQty: t.liveCount,
     difference: t.difference,
@@ -201,7 +210,7 @@ export function AdminDashboard() {
           </button>
           {rows.length > 0 && (
             <>
-              <button type="button" onClick={() => exportExcel(rows, currentSession?.name ?? 'stock-count')}>
+              <button type="button" onClick={() => void exportExcel(rows, currentSession?.name ?? 'stock-count')}>
                 <FileXls size={16} weight="bold" />
                 {t.exportExcel}
               </button>
@@ -292,6 +301,22 @@ export function AdminDashboard() {
                   aria-label={t.searchItems}
                 />
               </div>
+              {groupsInList.length > 1 && (
+                <label className="field-inline">
+                  <select
+                    value={groupFilter}
+                    onChange={(e) => setGroupFilter(e.target.value)}
+                    aria-label={t.group}
+                  >
+                    <option value="">{t.allGroups}</option>
+                    {groupsInList.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               {/* The table header collapses on phones, so sorting needs its own control there. */}
               <label className="field-inline mobile-only">
                 <ArrowsDownUp size={18} />
@@ -353,8 +378,8 @@ export function AdminDashboard() {
                   {visibleRows.map((row) => (
                     <tr key={row.id}>
                       <td className="item-name">{row.itemName}</td>
+                      <td data-label={t.group}>{row.groupName || '-'}</td>
                       <td data-label={t.unit}>{row.unit || '-'}</td>
-                      <td data-label={t.section}>{row.assignedSection ?? '-'}</td>
                       <td className="num-cell" data-label={t.tallyQty}>
                         {row.tallyQty}
                       </td>

@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowClockwise, CheckCircle, CloudSlash, MagnifyingGlass, Tray } from '@phosphor-icons/react'
+import {
+  ArrowClockwise,
+  CaretDown,
+  CaretRight,
+  CheckCircle,
+  CloudSlash,
+  MagnifyingGlass,
+  Tray,
+} from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 import { TopBar } from '../components/TopBar'
@@ -23,6 +31,7 @@ export function StaffView() {
   const [saveStates, setSaveStates] = useState<Record<string, SaveState>>({})
   const [search, setSearch] = useState('')
   const [pendingOnly, setPendingOnly] = useState(false)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => {
@@ -40,12 +49,12 @@ export function StaffView() {
       return
     }
     const unsubItems = listenStockItems(sessionId, setItems)
-    const unsubCounts = listenStockCounts(sessionId, setCounts)
+    const unsubCounts = listenStockCounts(sessionId, setCounts, profile?.uid)
     return () => {
       unsubItems()
       unsubCounts()
     }
-  }, [sessionId])
+  }, [sessionId, profile?.uid])
 
   const myItems = useMemo(
     () =>
@@ -85,16 +94,38 @@ export function StaffView() {
     })
   }, [myItems, search, pendingOnly, valueFor])
 
-  const persist = useCallback(
-    async (itemId: string, value: number, assignedSection: string | null) => {
-      if (!profile) return
-      setSaveStates((s) => ({ ...s, [itemId]: 'saving' }))
-      try {
-        await setLiveCount(sessionId, itemId, value, profile.uid, assignedSection)
-        setSaveStates((s) => ({ ...s, [itemId]: 'saved' }))
-      } catch {
-        setSaveStates((s) => ({ ...s, [itemId]: 'error' }))
+  /** Tally's own order is preserved, so groups come out in the order they were imported. */
+  const sections = useMemo(() => {
+    const order: string[] = []
+    const byGroup = new Map<string, StockItem[]>()
+    for (const item of visibleItems) {
+      const key = item.groupName || ''
+      if (!byGroup.has(key)) {
+        byGroup.set(key, [])
+        order.push(key)
       }
+      byGroup.get(key)!.push(item)
+    }
+    return order.map((name) => {
+      const groupItems = byGroup.get(name)!
+      const groupDone = groupItems.filter((i) => valueFor(i.id).trim() !== '').length
+      return { name, items: groupItems, done: groupDone }
+    })
+  }, [visibleItems, valueFor])
+
+  const persist = useCallback(
+    (itemId: string, value: number, assignedSection: string | null) => {
+      if (!profile) return
+      /**
+       * Firestore stores the write on the device before it reaches the server,
+       * so the tick means "safe on this phone". Awaiting the server ack would
+       * leave the row spinning forever on godown signal, which is exactly when
+       * staff most need to trust it. A rejected write still flips to an error.
+       */
+      setLiveCount(sessionId, itemId, value, profile.uid, assignedSection).catch(() =>
+        setSaveStates((s) => ({ ...s, [itemId]: 'error' })),
+      )
+      setSaveStates((s) => ({ ...s, [itemId]: 'saved' }))
     },
     [profile, sessionId],
   )
@@ -112,7 +143,7 @@ export function StaffView() {
   function retry(item: StockItem) {
     const value = Number(valueFor(item.id))
     if (Number.isNaN(value)) return
-    void persist(item.id, value, item.assignedSection)
+    persist(item.id, value, item.assignedSection)
   }
 
   /** Enter moves to the next item so staff can count without hunting for fields. */
@@ -194,53 +225,78 @@ export function StaffView() {
           </div>
         )}
 
-        {sessionId && visibleItems.length > 0 && (
-          <ul className="count-list">
-            {visibleItems.map((item, index) => {
-              const value = valueFor(item.id)
-              const state = saveStates[item.id]
-              const filled = value.trim() !== ''
-              return (
-                <li key={item.id} className={`count-card glass${filled ? ' is-done' : ''}`}>
-                  <div className="count-card-main">
-                    <span className="count-item-name">{item.itemName}</span>
-                    {item.unit && <span className="count-unit">{item.unit}</span>}
-                  </div>
-                  <div className="count-card-entry">
-                    <input
-                      ref={(el) => {
-                        inputsRef.current[item.id] = el
-                      }}
-                      className={`count-input${filled ? ' filled' : ''}`}
-                      type="number"
-                      inputMode="decimal"
-                      enterKeyHint="next"
-                      value={value}
-                      placeholder="0"
-                      onChange={(e) => handleChange(item, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          focusNext(index)
-                        }
-                      }}
-                      aria-label={`${t.count}: ${item.itemName}`}
-                    />
-                    <span className={`save-state${state ? ` is-${state}` : ''}`}>
-                      {state === 'saving' && <span className="dot-pulse" aria-label={t.saving} />}
-                      {state === 'saved' && <CheckCircle size={20} weight="fill" aria-label={t.saved} />}
-                      {state === 'error' && (
-                        <button type="button" className="btn-ghost icon-btn retry" onClick={() => retry(item)} title={t.notSaved}>
-                          <ArrowClockwise size={18} weight="bold" />
-                        </button>
-                      )}
+        {sessionId &&
+          sections.map((section) => {
+            const isCollapsed = collapsed[section.name] ?? false
+            return (
+              <section key={section.name || 'ungrouped'} className="count-section">
+                {section.name && (
+                  <button
+                    type="button"
+                    className="group-heading btn-ghost"
+                    aria-expanded={!isCollapsed}
+                    onClick={() =>
+                      setCollapsed((c) => ({ ...c, [section.name]: !isCollapsed }))
+                    }
+                  >
+                    {isCollapsed ? <CaretRight size={16} weight="bold" /> : <CaretDown size={16} weight="bold" />}
+                    <span className="group-name">{section.name}</span>
+                    <span className={`group-count${section.done === section.items.length ? ' is-done' : ''}`}>
+                      {section.done}/{section.items.length}
                     </span>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                  </button>
+                )}
+
+                {!isCollapsed && (
+                  <ul className="count-list">
+                    {section.items.map((item) => {
+                      const value = valueFor(item.id)
+                      const state = saveStates[item.id]
+                      const filled = value.trim() !== ''
+                      return (
+                        <li key={item.id} className={`count-card glass${filled ? ' is-done' : ''}`}>
+                          <div className="count-card-main">
+                            <span className="count-item-name">{item.itemName}</span>
+                            {item.unit && <span className="count-unit">{item.unit}</span>}
+                          </div>
+                          <div className="count-card-entry">
+                            <input
+                              ref={(el) => {
+                                inputsRef.current[item.id] = el
+                              }}
+                              className={`count-input${filled ? ' filled' : ''}`}
+                              type="number"
+                              inputMode="decimal"
+                              enterKeyHint="next"
+                              value={value}
+                              placeholder="0"
+                              onChange={(e) => handleChange(item, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  focusNext(visibleItems.indexOf(item))
+                                }
+                              }}
+                              aria-label={`${t.count}: ${item.itemName}`}
+                            />
+                            <span className={`save-state${state ? ` is-${state}` : ''}`}>
+                              {state === 'saving' && <span className="dot-pulse" aria-label={t.saving} />}
+                              {state === 'saved' && <CheckCircle size={20} weight="fill" aria-label={t.saved} />}
+                              {state === 'error' && (
+                                <button type="button" className="btn-ghost icon-btn retry" onClick={() => retry(item)} title={t.notSaved}>
+                                  <ArrowClockwise size={18} weight="bold" />
+                                </button>
+                              )}
+                            </span>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+              </section>
+            )
+          })}
 
         {sessionId && myItems.length > 0 && visibleItems.length === 0 && (
           <div className="table-wrap glass">
