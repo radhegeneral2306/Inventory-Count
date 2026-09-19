@@ -6,24 +6,28 @@ import {
   CaretUpDown,
   CheckCircle,
   Clock,
+  ArrowsDownUp,
   FilePdf,
   FileXls,
-  ArrowsDownUp,
   MagnifyingGlass,
   Package,
+  Trash,
   Tray,
   UploadSimple,
   UsersThree,
+  WarningCircle,
   WarningDiamond,
   X,
 } from '@phosphor-icons/react'
 import { TopBar } from '../components/TopBar'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useLanguage } from '../context/LanguageContext'
 import {
   listenSessions,
   listenStockCounts,
   listenStockItems,
   listenTallyQuantities,
+  deleteSession,
 } from '../lib/stockData'
 import { exportExcel, exportPdf } from '../lib/exportReport'
 import { ImportPanel } from './ImportPanel'
@@ -66,6 +70,9 @@ export function AdminDashboard() {
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('itemName')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(false)
 
   useEffect(() => {
     return listenSessions((all) => {
@@ -140,6 +147,22 @@ export function AdminDashboard() {
     difference: t.difference,
   }
 
+  async function handleDelete() {
+    if (!sessionId) return
+    setDeleting(true)
+    setDeleteError(false)
+    try {
+      await deleteSession(sessionId)
+      setConfirmDelete(false)
+      // Pick whatever list the sessions listener still has, or fall back to empty.
+      setSessionId((current) => (current === sessionId ? '' : current))
+    } catch {
+      setDeleteError(true)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   function handleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -188,7 +211,20 @@ export function AdminDashboard() {
               </button>
             </>
           )}
+          {sessionId && (
+            <button type="button" className="btn-danger-ghost" onClick={() => setConfirmDelete(true)}>
+              <Trash size={16} weight="bold" />
+              {t.deleteList}
+            </button>
+          )}
         </div>
+
+        {deleteError && (
+          <p className="error-text">
+            <WarningCircle size={16} weight="bold" />
+            {t.deleteFailed}
+          </p>
+        )}
 
         {showImport && (
           <ImportPanel
@@ -360,6 +396,18 @@ export function AdminDashboard() {
               {t.noSessionsAdmin}
             </div>
           </div>
+        )}
+
+        {confirmDelete && currentSession && (
+          <ConfirmDialog
+            title={t.deleteListTitle}
+            body={t.deleteListBody(currentSession.name, rows.length)}
+            confirmLabel={deleting ? t.deleting : t.deleteList}
+            cancelLabel={t.cancel}
+            busy={deleting}
+            onConfirm={() => void handleDelete()}
+            onCancel={() => setConfirmDelete(false)}
+          />
         )}
       </div>
     </>

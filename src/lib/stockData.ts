@@ -1,7 +1,9 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
@@ -111,4 +113,27 @@ export async function setLiveCount(
     assignedSection,
     updatedAt: serverTimestamp(),
   })
+}
+
+/**
+ * Firestore does not cascade deletes, so every subcollection has to be cleared
+ * before the session document itself goes. Deletes are batched because a list
+ * can hold several hundred items across three subcollections.
+ */
+export async function deleteSession(sessionId: string): Promise<void> {
+  const subcollections = ['stockItems', 'tallyQuantities', 'stockCounts']
+  const batchLimit = 400
+
+  for (const name of subcollections) {
+    const snap = await getDocs(collection(db, SESSIONS, sessionId, name))
+    for (let i = 0; i < snap.docs.length; i += batchLimit) {
+      const batch = writeBatch(db)
+      for (const docSnap of snap.docs.slice(i, i + batchLimit)) {
+        batch.delete(docSnap.ref)
+      }
+      await batch.commit()
+    }
+  }
+
+  await deleteDoc(doc(db, SESSIONS, sessionId))
 }

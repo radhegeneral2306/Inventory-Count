@@ -36,6 +36,7 @@
   --accent-soft: rgba(0, 104, 214, 0.12);
 
   --danger: #c50f1f;
+  --danger-contrast: #ffffff;
   --danger-soft: rgba(197, 15, 31, 0.12);
   --success: #157a3a;
   --success-soft: rgba(21, 122, 58, 0.12);
@@ -88,6 +89,7 @@
   --accent-soft: rgba(43, 144, 255, 0.18);
 
   --danger: #ff6b61;
+  --danger-contrast: #2b0704;
   --danger-soft: rgba(255, 107, 97, 0.16);
   --success: #45dd6a;
   --success-soft: rgba(69, 221, 106, 0.16);
@@ -128,6 +130,7 @@
     --accent-soft: rgba(43, 144, 255, 0.18);
 
     --danger: #ff6b61;
+    --danger-contrast: #2b0704;
     --danger-soft: rgba(255, 107, 97, 0.16);
     --success: #45dd6a;
     --success-soft: rgba(69, 221, 106, 0.16);
@@ -1336,4 +1339,96 @@ label {
   .mobile-only {
     display: flex;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Destructive actions
+--------------------------------------------------------------------------- */
+
+.btn-danger {
+  color: var(--danger-contrast);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--danger) 88%, white), var(--danger));
+  border-color: transparent;
+  box-shadow: 0 6px 18px var(--danger-soft), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.btn-danger:hover:not(:disabled) {
+  box-shadow: 0 10px 26px var(--danger-soft), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.btn-danger-ghost {
+  color: var(--danger);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--danger) 32%, transparent);
+  box-shadow: none;
+}
+
+.btn-danger-ghost:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  box-shadow: none;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 12, 20, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fade 0.2s var(--ease) both;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--glass-highlight);
+  animation: rise 0.28s var(--ease-spring) both;
+}
+
+.dialog-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.dialog-text {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.dialog-text h2 {
+  font-size: 18px;
+}
+
+.dialog-text p {
+  line-height: 1.5;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-actions button {
+  flex: 1 1 0;
 }

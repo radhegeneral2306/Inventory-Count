@@ -73,6 +73,14 @@ const en = {
   manageUsers: 'Manage users',
   backToDashboard: 'Back to dashboard',
 
+  deleteList: 'Delete list',
+  deleteListTitle: 'Delete this stock list?',
+  deleteListBody: (name: string, items: number) =>
+    `"${name}" and all ${items} items in it, including every count your staff has entered, will be removed. This cannot be undone.`,
+  deleting: 'Deleting...',
+  cancel: 'Cancel',
+  deleteFailed: 'Could not delete the list. Check your connection and try again.',
+
   importTitle: 'Import Tally Excel export',
   listName: 'List name',
   file: 'File',
@@ -166,6 +174,14 @@ const roman: TranslationKeys = {
   manageUsers: 'Users manage karein',
   backToDashboard: 'Wapas dashboard',
 
+  deleteList: 'List delete karein',
+  deleteListTitle: 'Yeh stock list delete karein?',
+  deleteListBody: (name: string, items: number) =>
+    `"${name}" aur uske saare ${items} items, saath mein staff ki ki hui poori ginti, hamesha ke liye hat jayegi. Yeh wapas nahi aayegi.`,
+  deleting: 'Delete ho raha hai...',
+  cancel: 'Rehne dein',
+  deleteFailed: 'List delete nahi hui. Internet check karke dobara try karein.',
+
   importTitle: 'Tally Excel export import karein',
   listName: 'List ka naam',
   file: 'File',
@@ -256,6 +272,14 @@ const hi: TranslationKeys = {
   exportPdf: 'PDF',
   manageUsers: 'यूज़र मैनेज करें',
   backToDashboard: 'वापस डैशबोर्ड',
+
+  deleteList: 'लिस्ट डिलीट करें',
+  deleteListTitle: 'यह स्टॉक लिस्ट डिलीट करें?',
+  deleteListBody: (name: string, items: number) =>
+    `"${name}" और उसके सारे ${items} आइटम, साथ में स्टाफ़ की पूरी गिनती, हमेशा के लिए हट जाएगी। यह वापस नहीं आएगी।`,
+  deleting: 'डिलीट हो रहा है...',
+  cancel: 'रहने दें',
+  deleteFailed: 'लिस्ट डिलीट नहीं हुई। इंटरनेट जांच कर दोबारा कोशिश करें।',
 
   importTitle: 'Tally Excel export इम्पोर्ट करें',
   listName: 'लिस्ट का नाम',
