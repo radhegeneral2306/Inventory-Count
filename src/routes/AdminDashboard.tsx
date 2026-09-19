@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   listenSessions,
@@ -108,6 +109,7 @@ export function AdminDashboard() {
       <header className="page-header">
         <h1>Admin Dashboard</h1>
         <div>
+          <Link to="/admin/users">Manage users</Link>
           <span>{profile?.fullName}</span>
           <button type="button" onClick={() => void logout()}>
             Log out

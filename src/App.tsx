@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute'
 import { Login } from './routes/Login'
 import { StaffView } from './routes/StaffView'
 import { AdminDashboard } from './routes/AdminDashboard'
+import { UserManagement } from './routes/UserManagement'
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoute role="admin">
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute role="admin">
+                <UserManagement />
               </ProtectedRoute>
             }
           />
