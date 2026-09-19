@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Paste this into Firebase Console -> Firestore Database -> Rules.
+//
+// Data model reminder:
+//   stockSessions/{sessionId}
+//   stockSessions/{sessionId}/stockItems/{itemId}        -> itemName, unit, assignedSection
+//   stockSessions/{sessionId}/tallyQuantities/{itemId}   -> tallyQty (admin only)
+//   stockSessions/{sessionId}/stockCounts/{itemId}       -> liveQty, countedBy, assignedSection
+//   users/{uid}                                          -> fullName, role ('admin' | 'staff')
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Every signed-in user can read their own profile; only admin can manage profiles.
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /stockSessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+
+      // Item name/unit/section: staff need this to know what to count.
+      match /stockItems/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if isAdmin();
+      }
+
+      // Tally quantities: admin only, never exposed to staff.
+      match /tallyQuantities/{itemId} {
+        allow read: if isAdmin();
+        allow write: if isAdmin();
+      }
+
+      // Live counts: staff can write their own assigned rows; admin can read/write all.
+      match /stockCounts/{itemId} {
+        allow read: if isAdmin() ||
+          (isSignedIn() && resource.data.countedBy == request.auth.uid);
+        allow create, update: if isAdmin() ||
+          (isSignedIn() &&
+            request.resource.data.countedBy == request.auth.uid);
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
