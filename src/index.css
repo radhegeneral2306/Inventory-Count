@@ -521,7 +521,7 @@ label {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  animation: rise 0.5s var(--ease) both;
+  animation: rise 0.5s var(--ease) backwards;
 }
 
 @keyframes rise {
@@ -1127,8 +1127,36 @@ label {
   flex-direction: column;
   gap: 10px;
   padding: 10px 0;
-  margin: -10px 0;
-  background: linear-gradient(to bottom, var(--canvas) 72%, transparent);
+  margin: -10px 0 0;
+  /* Opaque enough to hide the list scrolling underneath, blurred so it still
+     reads as part of the glass surface stack. */
+  background: color-mix(in srgb, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+/* Soft fade so the sticky block does not end on a hard edge. */
+.sticky-tools::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--canvas) 88%, transparent),
+    transparent
+  );
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sticky-tools {
+    background: var(--canvas);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .progress-card {

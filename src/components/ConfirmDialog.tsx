@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { WarningCircle } from '@phosphor-icons/react'
 
 interface ConfirmDialogProps {
@@ -28,7 +29,20 @@ export function ConfirmDialog({
     return () => window.removeEventListener('keydown', onKey)
   }, [busy, onCancel])
 
-  return (
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [])
+
+  /**
+   * Rendered into body: an ancestor with a transform (the page's entry
+   * animation) would otherwise become the containing block for this fixed
+   * overlay and push it far below the viewport.
+   */
+  return createPortal(
     <div className="dialog-backdrop" role="dialog" aria-modal="true" aria-label={title}>
       <div className="dialog glass">
         <span className="dialog-icon">
@@ -47,6 +61,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
