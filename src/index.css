@@ -266,7 +266,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 9px 15px;
+  min-height: 44px;
+  padding: 10px 17px;
   white-space: nowrap;
   color: var(--text);
   background: var(--glass-bg-strong);
@@ -334,6 +335,7 @@ select:focus-visible {
 }
 
 .icon-btn {
+  min-width: 44px;
   padding: 9px;
   border-radius: 999px;
 }
@@ -341,9 +343,11 @@ select:focus-visible {
 input,
 select {
   font: inherit;
-  font-size: 15px;
+  /* 16px minimum: iOS Safari zooms the page when a smaller field is focused. */
+  font-size: 16px;
   width: 100%;
-  padding: 10px 13px;
+  min-height: 46px;
+  padding: 11px 14px;
   color: var(--text);
   background: var(--field-bg);
   border: 1px solid var(--glass-border);
@@ -383,6 +387,8 @@ label {
 }
 
 .segmented-option {
+  min-height: 34px;
+  min-width: 38px;
   padding: 6px 10px;
   border: none;
   border-radius: 999px;
@@ -871,9 +877,12 @@ label {
   font-size: 15px;
 }
 
-.login-theme {
+.login-toggles {
   display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1010,7 +1019,8 @@ label {
   }
 
   .segmented-option {
-    padding: 6px 8px;
+    min-width: 34px;
+    padding: 6px 7px;
   }
 
   .role-badge {
@@ -1081,5 +1091,249 @@ label {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Staff counting screen. Built for a phone held one handed in a godown:
+   large targets, one item per card, and a save indicator per row so staff
+   can see their entry actually went through.
+--------------------------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.notice svg {
+  flex-shrink: 0;
+  color: var(--warning);
+}
+
+.sticky-tools {
+  position: sticky;
+  top: 62px;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+  margin: -10px 0;
+  background: linear-gradient(to bottom, var(--canvas) 72%, transparent);
+}
+
+.progress-card {
+  gap: 9px;
+  padding: 13px 16px;
+}
+
+.progress-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-percent {
+  font-size: 20px;
+  font-weight: 660;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tool-row .search-field {
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+.field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.count-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.count-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.count-card.is-done {
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.count-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.count-item-name {
+  font-size: 16px;
+  font-weight: 590;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.count-unit {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.count-card-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.count-input {
+  width: 108px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+}
+
+.count-input.filled {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.save-state {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  flex-shrink: 0;
+}
+
+.save-state.is-saved {
+  color: var(--success);
+  animation: pop 0.3s var(--ease-spring);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+}
+
+.save-state .retry {
+  min-width: 34px;
+  padding: 6px;
+  color: var(--danger);
+}
+
+.dot-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+}
+
+@media (max-width: 720px) {
+  .sticky-tools {
+    top: 56px;
+  }
+
+  .count-card {
+    padding: 13px 14px;
+    gap: 10px;
+  }
+
+  .count-input {
+    width: 96px;
+    min-height: 48px;
+  }
+
+  .tool-row button {
+    padding: 10px 14px;
+  }
+}
+
+/* Responsive visibility helpers for the topbar menu. */
+.mobile-only {
+  display: none;
+}
+
+.topbar-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 1240px;
+  margin: 10px auto 2px;
+  padding: 6px 4px 2px;
+  border-top: 1px solid var(--hairline);
+  animation: rise 0.25s var(--ease) both;
+}
+
+.sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 2px;
+}
+
+.sheet-label {
+  font-size: 13px;
+  font-weight: 590;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segmented-option.is-text {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 720px) {
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: flex;
   }
 }

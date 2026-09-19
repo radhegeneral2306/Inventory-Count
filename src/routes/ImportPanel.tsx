@@ -3,9 +3,11 @@ import { CheckCircle, FileArrowUp, Trash, WarningCircle } from '@phosphor-icons/
 import { parseTallyExcel, type ParsedItem } from '../lib/importExcel'
 import { createSessionWithItems } from '../lib/stockData'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 
 export function ImportPanel({ onImported }: { onImported: (sessionId: string) => void }) {
   const { profile } = useAuth()
+  const { t } = useLanguage()
   const [sessionName, setSessionName] = useState('')
   const [parsed, setParsed] = useState<ParsedItem[]>([])
   const [saving, setSaving] = useState(false)
@@ -18,12 +20,12 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
     try {
       const items = await parseTallyExcel(file)
       if (items.length === 0) {
-        setError('No item rows detected in this file. Try a different export or check the format.')
+        setError(t.noRowsDetected)
       }
       setParsed(items)
       if (!sessionName) setSessionName(file.name.replace(/\.[^.]+$/, ''))
     } catch {
-      setError('Could not read this file. Make sure it is a valid Excel export.')
+      setError(t.couldNotRead)
     }
   }
 
@@ -56,17 +58,17 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
 
   return (
     <div className="card glass">
-      <h2>Import Tally Excel Export</h2>
+      <h2>{t.importTitle}</h2>
       <div className="form-grid">
         <label>
-          Session name
+          {t.listName}
           <input value={sessionName} onChange={(e) => setSessionName(e.target.value)} />
         </label>
         <div className="field-group">
-          <span className="field-label">File</span>
+          <span className="field-label">{t.file}</span>
           <label className="file-drop" htmlFor="tally-file-input">
             <FileArrowUp size={18} />
-            {parsed.length > 0 ? 'Replace file' : 'Choose an Excel export'}
+            {parsed.length > 0 ? t.replaceFile : t.chooseFile}
           </label>
           <input
             id="tally-file-input"
@@ -86,18 +88,15 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
 
       {parsed.length > 0 && (
         <>
-          <p className="hint-text">
-            Review the {parsed.length} parsed rows below and fix anything before importing. Tally
-            exports sometimes include stray header or subtotal rows.
-          </p>
+          <p className="hint-text">{t.reviewRows(parsed.length)}</p>
           <div className="table-wrap inset-panel">
             <div className="table-scroll">
               <table className="stock-table">
                 <thead>
                   <tr>
-                    <th className="plain-head">Item Name</th>
-                    <th className="plain-head">Unit</th>
-                    <th className="plain-head">Tally Qty</th>
+                    <th className="plain-head">{t.item}</th>
+                    <th className="plain-head">{t.unit}</th>
+                    <th className="plain-head">{t.tallyQty}</th>
                     <th className="plain-head"></th>
                   </tr>
                 </thead>
@@ -125,7 +124,7 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
                           type="button"
                           className="btn-ghost icon-btn"
                           onClick={() => removeRow(i)}
-                          aria-label="Remove row"
+                          aria-label={t.removeRow}
                         >
                           <Trash size={16} />
                         </button>
@@ -138,7 +137,7 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
           </div>
           <button type="button" className="btn-primary self-start" onClick={() => void confirmImport()} disabled={saving}>
             <CheckCircle size={16} weight="bold" />
-            {saving ? 'Importing...' : `Import ${parsed.length} items`}
+            {saving ? t.importing : t.importItems(parsed.length)}
           </button>
         </>
       )}

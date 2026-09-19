@@ -8,6 +8,7 @@ import {
   Clock,
   FilePdf,
   FileXls,
+  ArrowsDownUp,
   MagnifyingGlass,
   Package,
   Tray,
@@ -17,6 +18,7 @@ import {
   X,
 } from '@phosphor-icons/react'
 import { TopBar } from '../components/TopBar'
+import { useLanguage } from '../context/LanguageContext'
 import {
   listenSessions,
   listenStockCounts,
@@ -30,13 +32,13 @@ import type { StockCount, StockItem, StockRow, StockSession, TallyQty } from '..
 type SortKey = 'itemName' | 'unit' | 'assignedSection' | 'tallyQty' | 'liveQty' | 'difference'
 type SortDirection = 'asc' | 'desc'
 
-const columns: { key: SortKey; label: string; numeric?: boolean }[] = [
-  { key: 'itemName', label: 'Item' },
-  { key: 'unit', label: 'Unit' },
-  { key: 'assignedSection', label: 'Section' },
-  { key: 'tallyQty', label: 'Tally Qty', numeric: true },
-  { key: 'liveQty', label: 'Live Count', numeric: true },
-  { key: 'difference', label: 'Difference', numeric: true },
+const columnKeys: { key: SortKey; numeric?: boolean }[] = [
+  { key: 'itemName' },
+  { key: 'unit' },
+  { key: 'assignedSection' },
+  { key: 'tallyQty', numeric: true },
+  { key: 'liveQty', numeric: true },
+  { key: 'difference', numeric: true },
 ]
 
 function sortRows(rows: StockRow[], key: SortKey, direction: SortDirection): StockRow[] {
@@ -54,6 +56,7 @@ function sortRows(rows: StockRow[], key: SortKey, direction: SortDirection): Sto
 }
 
 export function AdminDashboard() {
+  const { t } = useLanguage()
   const [showImport, setShowImport] = useState(false)
   const [sessions, setSessions] = useState<StockSession[]>([])
   const [sessionId, setSessionId] = useState('')
@@ -128,6 +131,15 @@ export function AdminDashboard() {
 
   const currentSession = sessions.find((s) => s.id === sessionId)
 
+  const columnLabels: Record<SortKey, string> = {
+    itemName: t.item,
+    unit: t.unit,
+    assignedSection: t.section,
+    tallyQty: t.tallyQty,
+    liveQty: t.liveCount,
+    difference: t.difference,
+  }
+
   function handleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -139,8 +151,8 @@ export function AdminDashboard() {
 
   return (
     <>
-      <TopBar title="Stock Count">
-        <Link to="/admin/users" className="btn-ghost icon-btn" aria-label="Manage users" title="Manage users">
+      <TopBar title={t.adminTitle}>
+        <Link to="/admin/users" className="btn-ghost icon-btn" aria-label={t.manageUsers} title={t.manageUsers}>
           <UsersThree size={18} weight="bold" />
         </Link>
       </TopBar>
@@ -149,7 +161,7 @@ export function AdminDashboard() {
         <div className="toolbar">
           {sessions.length > 0 && (
             <label>
-              Session
+              {t.stockList}
               <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -162,17 +174,17 @@ export function AdminDashboard() {
           <span className="spacer" />
           <button type="button" className="btn-primary" onClick={() => setShowImport((v) => !v)}>
             {showImport ? <X size={16} weight="bold" /> : <UploadSimple size={16} weight="bold" />}
-            {showImport ? 'Close' : 'Import stock'}
+            {showImport ? t.close : t.importStock}
           </button>
           {rows.length > 0 && (
             <>
               <button type="button" onClick={() => exportExcel(rows, currentSession?.name ?? 'stock-count')}>
                 <FileXls size={16} weight="bold" />
-                Excel
+                {t.exportExcel}
               </button>
               <button type="button" onClick={() => exportPdf(rows, currentSession?.name ?? 'stock-count')}>
                 <FilePdf size={16} weight="bold" />
-                PDF
+                {t.exportPdf}
               </button>
             </>
           )}
@@ -195,7 +207,7 @@ export function AdminDashboard() {
                   <span className="stat-chip">
                     <Package size={15} weight="bold" />
                   </span>
-                  <span className="stat-label">Items</span>
+                  <span className="stat-label">{t.totalItems}</span>
                 </div>
                 <span className="stat-value">{stats.total}</span>
               </div>
@@ -204,7 +216,7 @@ export function AdminDashboard() {
                   <span className="stat-chip is-success">
                     <CheckCircle size={15} weight="bold" />
                   </span>
-                  <span className="stat-label">Counted</span>
+                  <span className="stat-label">{t.counted}</span>
                 </div>
                 <span className="stat-value">{stats.counted}</span>
                 <div className="progress-track">
@@ -216,7 +228,7 @@ export function AdminDashboard() {
                   <span className="stat-chip">
                     <Clock size={15} weight="bold" />
                   </span>
-                  <span className="stat-label">Pending</span>
+                  <span className="stat-label">{t.pending}</span>
                 </div>
                 <span className="stat-value">{stats.pending}</span>
               </div>
@@ -225,7 +237,7 @@ export function AdminDashboard() {
                   <span className={`stat-chip${stats.variances > 0 ? ' is-danger' : ''}`}>
                     <WarningDiamond size={15} weight="bold" />
                   </span>
-                  <span className="stat-label">Variances</span>
+                  <span className="stat-label">{t.differences}</span>
                 </div>
                 <span className="stat-value" style={{ color: stats.variances > 0 ? 'var(--danger)' : undefined }}>
                   {stats.variances}
@@ -235,15 +247,35 @@ export function AdminDashboard() {
 
             <div className="toolbar">
               <div className="search-field">
-                <MagnifyingGlass size={16} />
+                <MagnifyingGlass size={18} />
                 <input
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search items"
-                  aria-label="Search items"
+                  placeholder={t.searchItems}
+                  aria-label={t.searchItems}
                 />
               </div>
+              {/* The table header collapses on phones, so sorting needs its own control there. */}
+              <label className="field-inline mobile-only">
+                <ArrowsDownUp size={18} />
+                <select
+                  value={`${sortKey}:${sortDirection}`}
+                  onChange={(e) => {
+                    const [key, dir] = e.target.value.split(':')
+                    setSortKey(key as SortKey)
+                    setSortDirection(dir as SortDirection)
+                  }}
+                  aria-label={t.sortBy}
+                >
+                  {columnKeys.map((col) => (
+                    <optgroup key={col.key} label={columnLabels[col.key]}>
+                      <option value={`${col.key}:asc`}>{`${columnLabels[col.key]} ${t.ascending}`}</option>
+                      <option value={`${col.key}:desc`}>{`${columnLabels[col.key]} ${t.descending}`}</option>
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
             </div>
           </>
         )}
@@ -251,10 +283,10 @@ export function AdminDashboard() {
         {!showImport && sessionId && visibleRows.length > 0 && (
           <div className="table-wrap glass">
             <div className="table-scroll">
-              <table className="stock-table">
+              <table className="stock-table stacked">
                 <thead>
                   <tr>
-                    {columns.map((col) => {
+                    {columnKeys.map((col) => {
                       const isActive = sortKey === col.key
                       return (
                         <th key={col.key}>
@@ -263,7 +295,7 @@ export function AdminDashboard() {
                             className={`sort-button${col.numeric ? ' align-right' : ''}`}
                             onClick={() => handleSort(col.key)}
                           >
-                            {col.label}
+                            {columnLabels[col.key]}
                             <span className={`sort-icon${isActive ? ' active' : ''}`}>
                               {isActive ? (
                                 sortDirection === 'asc' ? (
@@ -285,13 +317,15 @@ export function AdminDashboard() {
                   {visibleRows.map((row) => (
                     <tr key={row.id}>
                       <td className="item-name">{row.itemName}</td>
-                      <td>{row.unit || '-'}</td>
-                      <td>{row.assignedSection ?? '-'}</td>
-                      <td className="num-cell">{row.tallyQty}</td>
-                      <td className="num-cell">
-                        {row.liveQty === null ? <span className="diff-empty">Pending</span> : row.liveQty}
+                      <td data-label={t.unit}>{row.unit || '-'}</td>
+                      <td data-label={t.section}>{row.assignedSection ?? '-'}</td>
+                      <td className="num-cell" data-label={t.tallyQty}>
+                        {row.tallyQty}
                       </td>
-                      <td className="num-cell">
+                      <td className="num-cell" data-label={t.liveCount}>
+                        {row.liveQty === null ? <span className="diff-empty">{t.pending}</span> : row.liveQty}
+                      </td>
+                      <td className="num-cell" data-label={t.difference}>
                         {row.difference === null ? (
                           <span className="diff-empty">-</span>
                         ) : (
@@ -314,7 +348,7 @@ export function AdminDashboard() {
           <div className="table-wrap glass">
             <div className="empty-state">
               <MagnifyingGlass size={28} />
-              No items match that search.
+              {t.noSearchMatch}
             </div>
           </div>
         )}
@@ -323,7 +357,7 @@ export function AdminDashboard() {
           <div className="table-wrap glass">
             <div className="empty-state">
               <Tray size={30} />
-              No stock sessions yet. Import a Tally export to get started.
+              {t.noSessionsAdmin}
             </div>
           </div>
         )}

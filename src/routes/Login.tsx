@@ -2,13 +2,16 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { CubeFocus, WarningCircle } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { LanguageToggle } from '../components/LanguageToggle'
 
 export function Login() {
   const { login, firebaseUser, profile, loading } = useAuth()
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   if (!loading && firebaseUser && profile) {
@@ -17,12 +20,12 @@ export function Login() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    setError('')
+    setError(false)
     setSubmitting(true)
     try {
       await login(email, password)
     } catch {
-      setError('Login failed. Check your email and password.')
+      setError(true)
     } finally {
       setSubmitting(false)
     }
@@ -35,43 +38,44 @@ export function Login() {
           <CubeFocus size={27} weight="bold" />
         </div>
         <div className="login-heading">
-          <h1>Stock Count</h1>
-          <p>Sign in to compare Tally stock against the live godown count.</p>
+          <h1>{t.appName}</h1>
+          <p>{t.loginSubtitle}</p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            Email
+            {t.email}
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              placeholder="you@company.com"
+              placeholder={t.emailPlaceholder}
               required
             />
           </label>
           <label>
-            Password
+            {t.password}
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              placeholder="Your password"
+              placeholder={t.passwordPlaceholder}
               required
             />
           </label>
           {error && (
             <p className="error-text">
               <WarningCircle size={16} weight="bold" />
-              {error}
+              {t.loginFailed}
             </p>
           )}
           <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? 'Signing in...' : 'Sign in'}
+            {submitting ? t.signingIn : t.signIn}
           </button>
         </form>
-        <div className="login-theme">
+        <div className="login-toggles">
+          <LanguageToggle />
           <ThemeToggle />
         </div>
       </div>

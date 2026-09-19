@@ -24,7 +24,7 @@ export async function createUserAccount(
   })
   const data = await res.json()
   if (!res.ok) {
-    throw new Error(describeAuthError(data?.error?.message))
+    throw new CreateUserError(classifyAuthError(data?.error?.message))
   }
 
   const uid = data.localId as string
@@ -47,16 +47,22 @@ export function listenUsers(cb: (users: UserProfile[]) => void): Unsubscribe {
   })
 }
 
-function describeAuthError(code: string | undefined): string {
-  switch (code) {
-    case 'EMAIL_EXISTS':
-      return 'An account with this email already exists.'
-    case 'INVALID_EMAIL':
-      return 'That email address looks invalid.'
-    case 'WEAK_PASSWORD : Password should be at least 6 characters':
-    case 'WEAK_PASSWORD':
-      return 'Password must be at least 6 characters.'
-    default:
-      return code ?? 'Could not create the account.'
+export type CreateUserErrorReason = 'emailExists' | 'invalidEmail' | 'weakPassword' | 'unknown'
+
+/** Carries a reason the caller can translate, rather than a fixed English string. */
+export class CreateUserError extends Error {
+  reason: CreateUserErrorReason
+
+  constructor(reason: CreateUserErrorReason) {
+    super(reason)
+    this.name = 'CreateUserError'
+    this.reason = reason
   }
+}
+
+function classifyAuthError(code: string | undefined): CreateUserErrorReason {
+  if (code === 'EMAIL_EXISTS') return 'emailExists'
+  if (code === 'INVALID_EMAIL') return 'invalidEmail'
+  if (code?.startsWith('WEAK_PASSWORD')) return 'weakPassword'
+  return 'unknown'
 }

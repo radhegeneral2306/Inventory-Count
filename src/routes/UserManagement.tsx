@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, FloppyDisk, UserPlus } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { TopBar } from '../components/TopBar'
-import { createUserAccount, listenUsers, updateUserProfile } from '../lib/userAdmin'
+import { useLanguage } from '../context/LanguageContext'
+import { createUserAccount, CreateUserError, listenUsers, updateUserProfile } from '../lib/userAdmin'
 import type { Role, UserProfile } from '../types'
 
 export function UserManagement() {
   const { profile: currentProfile } = useAuth()
+  const { t } = useLanguage()
   const [users, setUsers] = useState<UserProfile[]>([])
 
   const [email, setEmail] = useState('')
@@ -33,7 +35,11 @@ export function UserManagement() {
       setFullName('')
       setRole('staff')
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Could not create the account.')
+      if (err instanceof CreateUserError && err.reason !== 'unknown') {
+        setCreateError(t[err.reason])
+      } else {
+        setCreateError(t.couldNotCreate)
+      }
     } finally {
       setCreating(false)
     }
@@ -67,26 +73,26 @@ export function UserManagement() {
 
   return (
     <>
-      <TopBar title="Users">
-        <Link to="/admin" className="btn-ghost icon-btn" aria-label="Back to dashboard" title="Back to dashboard">
+      <TopBar title={t.usersTitle}>
+        <Link to="/admin" className="btn-ghost icon-btn" aria-label={t.backToDashboard} title={t.backToDashboard}>
           <ArrowLeft size={18} weight="bold" />
         </Link>
       </TopBar>
 
       <div className="page">
         <form className="card glass" onSubmit={(e) => void handleCreate(e)}>
-          <h2>Create a new user</h2>
+          <h2>{t.createUser}</h2>
           <div className="form-grid">
             <label>
-              Full name
+              {t.fullName}
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
             </label>
             <label>
-              Email
+              {t.email}
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </label>
             <label>
-              Password
+              {t.password}
               <input
                 type="password"
                 value={password}
@@ -96,17 +102,17 @@ export function UserManagement() {
               />
             </label>
             <label>
-              Role
+              {t.role}
               <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
+                <option value="staff">{t.roleStaff}</option>
+                <option value="admin">{t.roleAdmin}</option>
               </select>
             </label>
           </div>
           {createError && <p className="error-text">{createError}</p>}
           <button type="submit" className="btn-primary self-start" disabled={creating}>
             <UserPlus size={16} weight="bold" />
-            {creating ? 'Creating...' : 'Create user'}
+            {creating ? t.creating : t.create}
           </button>
         </form>
 
@@ -114,8 +120,8 @@ export function UserManagement() {
           <table className="stock-table">
             <thead>
               <tr>
-                <th className="plain-head">Full Name</th>
-                <th className="plain-head">Role</th>
+                <th className="plain-head">{t.fullName}</th>
+                <th className="plain-head">{t.role}</th>
                 <th className="plain-head"></th>
               </tr>
             </thead>
@@ -138,10 +144,10 @@ export function UserManagement() {
                           value={edit.role}
                           onChange={(e) => updateEdit(user.uid, { role: e.target.value as Role })}
                         >
-                          <option value="staff">Staff</option>
-                          <option value="admin">Admin</option>
+                          <option value="staff">{t.roleStaff}</option>
+                          <option value="admin">{t.roleAdmin}</option>
                         </select>
-                        {isSelf && <span className="role-badge">You</span>}
+                        {isSelf && <span className="role-badge">{t.you}</span>}
                       </div>
                     </td>
                     <td>
@@ -152,7 +158,7 @@ export function UserManagement() {
                         onClick={() => void saveEdit(user.uid)}
                       >
                         <FloppyDisk size={16} weight="bold" />
-                        {savingUid === user.uid ? 'Saving...' : 'Save'}
+                        {savingUid === user.uid ? t.savingShort : t.save}
                       </button>
                     </td>
                   </tr>
