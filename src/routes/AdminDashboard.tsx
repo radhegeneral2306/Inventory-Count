@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import {
+  CaretDown,
+  CaretUp,
+  CaretUpDown,
+  FilePdf,
+  FileXls,
+  UploadSimple,
+  UsersThree,
+  X,
+} from '@phosphor-icons/react'
+import { TopBar } from '../components/TopBar'
 import {
   listenSessions,
   listenStockCounts,
@@ -38,7 +48,6 @@ function sortRows(rows: StockRow[], key: SortKey, direction: SortDirection): Sto
 }
 
 export function AdminDashboard() {
-  const { profile, logout } = useAuth()
   const [showImport, setShowImport] = useState(false)
   const [sessions, setSessions] = useState<StockSession[]>([])
   const [sessionId, setSessionId] = useState('')
@@ -105,89 +114,107 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <h1>Admin Dashboard</h1>
-        <div>
-          <Link to="/admin/users">Manage users</Link>
-          <span>{profile?.fullName}</span>
-          <button type="button" onClick={() => void logout()}>
-            Log out
-          </button>
-        </div>
-      </header>
+    <>
+      <TopBar title="Admin Dashboard">
+        <Link to="/admin/users" className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <UsersThree size={16} weight="bold" />
+          Manage users
+        </Link>
+      </TopBar>
 
-      <div className="toolbar">
-        {sessions.length > 0 && (
-          <label>
-            Session
-            <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
+      <div className="page">
+        <div className="toolbar">
+          {sessions.length > 0 && (
+            <label>
+              Session
+              <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button type="button" className="btn-primary" onClick={() => setShowImport((v) => !v)}>
+            {showImport ? <X size={16} weight="bold" /> : <UploadSimple size={16} weight="bold" />}
+            {showImport ? 'Close import' : 'Import stock'}
+          </button>
+          {rows.length > 0 && (
+            <>
+              <button type="button" onClick={() => exportExcel(rows, currentSession?.name ?? 'stock-count')}>
+                <FileXls size={16} weight="bold" />
+                Export Excel
+              </button>
+              <button type="button" onClick={() => exportPdf(rows, currentSession?.name ?? 'stock-count')}>
+                <FilePdf size={16} weight="bold" />
+                Export PDF
+              </button>
+            </>
+          )}
+        </div>
+
+        {showImport && (
+          <ImportPanel
+            onImported={(newSessionId) => {
+              setSessionId(newSessionId)
+              setShowImport(false)
+            }}
+          />
         )}
-        <button type="button" onClick={() => setShowImport((v) => !v)}>
-          {showImport ? 'Close import' : 'Import stock'}
-        </button>
-        {rows.length > 0 && (
-          <>
-            <button type="button" onClick={() => exportExcel(rows, currentSession?.name ?? 'stock-count')}>
-              Export Excel
-            </button>
-            <button type="button" onClick={() => exportPdf(rows, currentSession?.name ?? 'stock-count')}>
-              Export PDF
-            </button>
-          </>
+
+        {!showImport && sessionId && (
+          <div className="table-wrap">
+            <table className="stock-table">
+              <thead>
+                <tr>
+                  {columns.map((col) => {
+                    const isActive = sortKey === col.key
+                    return (
+                      <th key={col.key}>
+                        <button type="button" className="sort-button" onClick={() => handleSort(col.key)}>
+                          {col.label}
+                          <span className={`sort-icon${isActive ? ' active' : ''}`}>
+                            {isActive ? (
+                              sortDirection === 'asc' ? (
+                                <CaretUp size={12} weight="bold" />
+                              ) : (
+                                <CaretDown size={12} weight="bold" />
+                              )
+                            ) : (
+                              <CaretUpDown size={12} />
+                            )}
+                          </span>
+                        </button>
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.itemName}</td>
+                    <td>{row.unit}</td>
+                    <td>{row.assignedSection ?? '-'}</td>
+                    <td className="num-cell">{row.tallyQty}</td>
+                    <td className="num-cell">{row.liveQty === null ? '-' : row.liveQty}</td>
+                    <td
+                      className={`num-cell ${row.difference === null ? '' : row.difference === 0 ? 'diff-zero' : row.difference > 0 ? 'diff-positive' : 'diff-negative'}`}
+                    >
+                      {row.difference === null ? '-' : row.difference > 0 ? `+${row.difference}` : row.difference}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!showImport && !sessionId && (
+          <div className="table-wrap empty-state">No stock sessions yet. Import a Tally export to get started.</div>
         )}
       </div>
-
-      {showImport && (
-        <ImportPanel
-          onImported={(newSessionId) => {
-            setSessionId(newSessionId)
-            setShowImport(false)
-          }}
-        />
-      )}
-
-      {!showImport && sessionId && (
-        <table className="stock-table">
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th key={col.key}>
-                  <button type="button" className="sort-button" onClick={() => handleSort(col.key)}>
-                    {col.label}
-                    <span className="sort-icon">
-                      {sortKey === col.key ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
-                    </span>
-                  </button>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedRows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.itemName}</td>
-                <td>{row.unit}</td>
-                <td>{row.assignedSection ?? '-'}</td>
-                <td>{row.tallyQty}</td>
-                <td>{row.liveQty === null ? '-' : row.liveQty}</td>
-                <td className={row.difference === null ? '' : row.difference === 0 ? 'diff-zero' : row.difference > 0 ? 'diff-positive' : 'diff-negative'}>
-                  {row.difference === null ? '-' : row.difference > 0 ? `+${row.difference}` : row.difference}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {!showImport && !sessionId && <p>No stock sessions yet. Import a Tally export to get started.</p>}
-    </div>
+    </>
   )
 }

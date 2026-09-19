@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { ArrowLeft, FloppyDisk, UserPlus } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
+import { TopBar } from '../components/TopBar'
 import { createUserAccount, listenUsers, updateUserProfile } from '../lib/userAdmin'
 import type { Role, UserProfile } from '../types'
 
@@ -64,86 +66,103 @@ export function UserManagement() {
   }
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <h1>User Management</h1>
-        <Link to="/admin">Back to dashboard</Link>
-      </header>
+    <>
+      <TopBar title="User Management">
+        <Link to="/admin" className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <ArrowLeft size={16} weight="bold" />
+          Dashboard
+        </Link>
+      </TopBar>
 
-      <form className="import-panel" onSubmit={(e) => void handleCreate(e)}>
-        <h2>Create a new user</h2>
-        <label>
-          Full name
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        </label>
-        <label>
-          Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={6}
-            required
-          />
-        </label>
-        <label>
-          Role
-          <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            <option value="staff">Staff</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
-        {createError && <p className="error-text">{createError}</p>}
-        <button type="submit" disabled={creating}>
-          {creating ? 'Creating...' : 'Create user'}
-        </button>
-      </form>
+      <div className="page">
+        <form className="card" onSubmit={(e) => void handleCreate(e)}>
+          <h2>Create a new user</h2>
+          <div className="form-grid">
+            <label>
+              Full name
+              <input value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            </label>
+            <label>
+              Email
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </label>
+            <label>
+              Role
+              <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          </div>
+          {createError && <p className="error-text">{createError}</p>}
+          <button type="submit" className="btn-primary" disabled={creating} style={{ alignSelf: 'flex-start' }}>
+            <UserPlus size={16} weight="bold" />
+            {creating ? 'Creating...' : 'Create user'}
+          </button>
+        </form>
 
-      <table className="stock-table">
-        <thead>
-          <tr>
-            <th>Full Name</th>
-            <th>Role</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => {
-            const edit = getEdit(user)
-            const dirty = edit.fullName !== user.fullName || edit.role !== user.role
-            const isSelf = user.uid === currentProfile?.uid
-            return (
-              <tr key={user.uid}>
-                <td>
-                  <input
-                    value={edit.fullName}
-                    onChange={(e) => updateEdit(user.uid, { fullName: e.target.value })}
-                  />
-                </td>
-                <td>
-                  <select
-                    value={edit.role}
-                    onChange={(e) => updateEdit(user.uid, { role: e.target.value as Role })}
-                  >
-                    <option value="staff">Staff</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  {isSelf && <span className="error-text"> (this is you)</span>}
-                </td>
-                <td>
-                  <button type="button" disabled={!dirty || savingUid === user.uid} onClick={() => void saveEdit(user.uid)}>
-                    {savingUid === user.uid ? 'Saving...' : 'Save'}
-                  </button>
-                </td>
+        <div className="table-wrap">
+          <table className="stock-table">
+            <thead>
+              <tr>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th></th>
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+            </thead>
+            <tbody>
+              {users.map((user) => {
+                const edit = getEdit(user)
+                const dirty = edit.fullName !== user.fullName || edit.role !== user.role
+                const isSelf = user.uid === currentProfile?.uid
+                return (
+                  <tr key={user.uid}>
+                    <td>
+                      <input
+                        value={edit.fullName}
+                        onChange={(e) => updateEdit(user.uid, { fullName: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <select
+                          value={edit.role}
+                          onChange={(e) => updateEdit(user.uid, { role: e.target.value as Role })}
+                        >
+                          <option value="staff">Staff</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        {isSelf && <span className="role-badge">You</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={dirty ? 'btn-primary' : ''}
+                        disabled={!dirty || savingUid === user.uid}
+                        onClick={() => void saveEdit(user.uid)}
+                      >
+                        <FloppyDisk size={16} weight="bold" />
+                        {savingUid === user.uid ? 'Saving...' : 'Save'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   )
 }

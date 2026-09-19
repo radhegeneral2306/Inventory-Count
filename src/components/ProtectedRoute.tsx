@@ -6,7 +6,7 @@ import type { Role } from '../types'
 export function ProtectedRoute({ role, children }: { role: Role; children: ReactNode }) {
   const { firebaseUser, profile, loading } = useAuth()
 
-  if (loading) return <div className="page-center">Loading...</div>
+  if (loading) return <div className="page-center"><div className="spinner" /></div>
   if (!firebaseUser || !profile) return <Navigate to="/login" replace />
   if (profile.role !== role) {
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/staff'} replace />

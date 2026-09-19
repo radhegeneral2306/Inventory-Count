@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
+import { CheckCircle, FileArrowUp, Trash, WarningCircle } from '@phosphor-icons/react'
 import { parseTallyExcel, type ParsedItem } from '../lib/importExcel'
 import { createSessionWithItems } from '../lib/stockData'
 import { useAuth } from '../context/AuthContext'
@@ -56,57 +57,86 @@ export function ImportPanel({ onImported }: { onImported: (sessionId: string) =>
   return (
     <div className="import-panel">
       <h2>Import Tally Excel Export</h2>
-      <label>
-        Session name
-        <input value={sessionName} onChange={(e) => setSessionName(e.target.value)} />
-      </label>
-      <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => void handleFile(e)} />
-      {error && <p className="error-text">{error}</p>}
+      <div className="form-grid">
+        <label>
+          Session name
+          <input value={sessionName} onChange={(e) => setSessionName(e.target.value)} />
+        </label>
+        <div className="field-group">
+          <span className="field-label">File</span>
+          <label className="file-drop" htmlFor="tally-file-input">
+            <FileArrowUp size={18} />
+            {parsed.length > 0 ? 'Replace file' : 'Choose an Excel export'}
+          </label>
+          <input
+            id="tally-file-input"
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={(e) => void handleFile(e)}
+            style={{ display: 'none' }}
+          />
+        </div>
+      </div>
+      {error && (
+        <p className="error-text" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <WarningCircle size={16} weight="bold" />
+          {error}
+        </p>
+      )}
 
       {parsed.length > 0 && (
         <>
-          <p>
-            Review the {parsed.length} parsed rows below and fix anything before importing —
-            Tally exports sometimes include stray header/subtotal rows.
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+            Review the {parsed.length} parsed rows below and fix anything before importing. Tally
+            exports sometimes include stray header or subtotal rows.
           </p>
-          <table className="stock-table">
-            <thead>
-              <tr>
-                <th>Item Name</th>
-                <th>Unit</th>
-                <th>Tally Qty</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {parsed.map((row, i) => (
-                <tr key={i}>
-                  <td>
-                    <input
-                      value={row.itemName}
-                      onChange={(e) => updateRow(i, 'itemName', e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input value={row.unit} onChange={(e) => updateRow(i, 'unit', e.target.value)} />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      value={row.tallyQty}
-                      onChange={(e) => updateRow(i, 'tallyQty', e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <button type="button" onClick={() => removeRow(i)}>
-                      Remove
-                    </button>
-                  </td>
+          <div className="table-wrap">
+            <table className="stock-table">
+              <thead>
+                <tr>
+                  <th>Item Name</th>
+                  <th>Unit</th>
+                  <th>Tally Qty</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <button type="button" onClick={() => void confirmImport()} disabled={saving}>
+              </thead>
+              <tbody>
+                {parsed.map((row, i) => (
+                  <tr key={i}>
+                    <td>
+                      <input
+                        value={row.itemName}
+                        onChange={(e) => updateRow(i, 'itemName', e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input value={row.unit} onChange={(e) => updateRow(i, 'unit', e.target.value)} />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        value={row.tallyQty}
+                        onChange={(e) => updateRow(i, 'tallyQty', e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <button type="button" className="icon-btn" onClick={() => removeRow(i)} aria-label="Remove row">
+                        <Trash size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => void confirmImport()}
+            disabled={saving}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            <CheckCircle size={16} weight="bold" />
             {saving ? 'Importing...' : `Import ${parsed.length} items`}
           </button>
         </>

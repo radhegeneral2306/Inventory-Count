@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
+import { CubeFocus, WarningCircle } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 
 export function Login() {
@@ -28,31 +29,46 @@ export function Login() {
 
   return (
     <div className="page-center">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h1>Stock Count Login</h1>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        {error && <p className="error-text">{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Signing in...' : 'Sign in'}
-        </button>
-      </form>
+      <div className="login-card">
+        <div className="login-icon">
+          <CubeFocus size={26} weight="bold" />
+        </div>
+        <div className="login-heading">
+          <h1>Stock Count</h1>
+          <p>Sign in to compare Tally stock against the live godown count.</p>
+        </div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </label>
+          {error && (
+            <p className="error-text" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <WarningCircle size={16} weight="bold" />
+              {error}
+            </p>
+          )}
+          <button type="submit" className="btn-primary" disabled={submitting} style={{ justifyContent: 'center' }}>
+            {submitting ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
