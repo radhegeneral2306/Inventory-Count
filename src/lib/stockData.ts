@@ -137,6 +137,11 @@ export async function setLiveCount(
   })
 }
 
+/** Erasing a count box back to empty should return the item to "pending", not just hide the old value locally. */
+export async function clearLiveCount(sessionId: string, itemId: string) {
+  await deleteDoc(doc(db, SESSIONS, sessionId, 'stockCounts', itemId))
+}
+
 /**
  * Firestore does not cascade deletes, so every subcollection has to be cleared
  * before the session document itself goes. Deletes are batched because a list
