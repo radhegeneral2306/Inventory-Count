@@ -3,7 +3,11 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { StockRow } from '../types'
 
-const headers = ['Group', 'Item Name', 'Unit', 'Tally Qty', 'Live Count', 'Difference']
+const headers = ['Group', 'Item Name', 'Unit', 'Tally Qty', 'Live Count', 'Difference', 'Counted By', 'Counted At']
+
+function formatTimestamp(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+}
 
 function cells(row: StockRow) {
   return [
@@ -13,6 +17,8 @@ function cells(row: StockRow) {
     row.tallyQty,
     row.liveQty ?? '',
     row.difference ?? '',
+    row.countedByName ?? '',
+    row.updatedAt === null ? '' : formatTimestamp(row.updatedAt),
   ]
 }
 
@@ -31,6 +37,8 @@ export async function exportExcel(rows: StockRow[], sessionName: string) {
     { width: 12 },
     { width: 12 },
     { width: 12 },
+    { width: 20 },
+    { width: 18 },
   ]
 
   const buffer = await workbook.xlsx.writeBuffer()
@@ -55,6 +63,8 @@ export function exportPdf(rows: StockRow[], sessionName: string) {
       String(row.tallyQty),
       row.liveQty === null ? '-' : String(row.liveQty),
       row.difference === null ? '-' : row.difference > 0 ? `+${row.difference}` : String(row.difference),
+      row.countedByName ?? '-',
+      row.updatedAt === null ? '-' : formatTimestamp(row.updatedAt),
     ]),
   })
 

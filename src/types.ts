@@ -49,4 +49,8 @@ export interface StockRow {
   liveQty: number | null
   difference: number | null
   assignedSection: string | null
+  /** Display name of whoever last saved a count for this item, or their uid if not resolvable. Null if never counted. */
+  countedByName: string | null
+  /** Milliseconds since epoch of that save. Null if never counted. */
+  updatedAt: number | null
 }

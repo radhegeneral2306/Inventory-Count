@@ -29,11 +29,20 @@ import {
   listenTallyQuantities,
   deleteSession,
 } from '../lib/stockData'
+import { listenUsers } from '../lib/userAdmin'
 import { exportExcel, exportPdf } from '../lib/exportReport'
 import { ImportPanel } from './ImportPanel'
-import type { StockCount, StockItem, StockRow, StockSession, TallyQty } from '../types'
+import type { StockCount, StockItem, StockRow, StockSession, TallyQty, UserProfile } from '../types'
 
-type SortKey = 'itemName' | 'groupName' | 'unit' | 'tallyQty' | 'liveQty' | 'difference'
+type SortKey =
+  | 'itemName'
+  | 'groupName'
+  | 'unit'
+  | 'tallyQty'
+  | 'liveQty'
+  | 'difference'
+  | 'countedByName'
+  | 'updatedAt'
 type SortDirection = 'asc' | 'desc'
 
 const columnKeys: { key: SortKey; numeric?: boolean }[] = [
@@ -43,7 +52,13 @@ const columnKeys: { key: SortKey; numeric?: boolean }[] = [
   { key: 'tallyQty', numeric: true },
   { key: 'liveQty', numeric: true },
   { key: 'difference', numeric: true },
+  { key: 'countedByName' },
+  { key: 'updatedAt', numeric: true },
 ]
+
+function formatTimestamp(ms: number): string {
+  return new Date(ms).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+}
 
 function sortRows(rows: StockRow[], key: SortKey, direction: SortDirection): StockRow[] {
   const sorted = [...rows].sort((a, b) => {
@@ -67,6 +82,7 @@ export function AdminDashboard() {
   const [items, setItems] = useState<StockItem[]>([])
   const [tallyQuantities, setTallyQuantities] = useState<TallyQty[]>([])
   const [counts, setCounts] = useState<StockCount[]>([])
+  const [users, setUsers] = useState<UserProfile[]>([])
   const [search, setSearch] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('itemName')
@@ -81,6 +97,10 @@ export function AdminDashboard() {
       setSessionId((current) => current || all[0]?.id || '')
     })
   }, [])
+
+  useEffect(() => listenUsers(setUsers), [])
+
+  const usersById = useMemo(() => new Map(users.map((u) => [u.uid, u.fullName])), [users])
 
   useEffect(() => {
     if (!sessionId) {
@@ -101,10 +121,11 @@ export function AdminDashboard() {
 
   const rows = useMemo<StockRow[]>(() => {
     const tallyById = new Map(tallyQuantities.map((t) => [t.id, t.tallyQty]))
-    const countById = new Map(counts.map((c) => [c.id, c.liveQty]))
+    const countById = new Map(counts.map((c) => [c.id, c]))
     return items.map((item) => {
       const tallyQty = tallyById.get(item.id) ?? 0
-      const liveQty = countById.get(item.id) ?? null
+      const count = countById.get(item.id)
+      const liveQty = count?.liveQty ?? null
       return {
         id: item.id,
         itemName: item.itemName,
@@ -114,9 +135,11 @@ export function AdminDashboard() {
         liveQty,
         difference: liveQty === null ? null : liveQty - tallyQty,
         assignedSection: item.assignedSection,
+        countedByName: count ? (usersById.get(count.countedBy) ?? count.countedBy) : null,
+        updatedAt: count?.updatedAt ?? null,
       }
     })
-  }, [items, tallyQuantities, counts])
+  }, [items, tallyQuantities, counts, usersById])
 
   const stats = useMemo(() => {
     const counted = rows.filter((r) => r.liveQty !== null).length
@@ -154,6 +177,8 @@ export function AdminDashboard() {
     tallyQty: t.tallyQty,
     liveQty: t.liveCount,
     difference: t.difference,
+    countedByName: t.countedBy,
+    updatedAt: t.countedAt,
   }
 
   async function handleDelete() {
@@ -395,6 +420,14 @@ export function AdminDashboard() {
                           >
                             {row.difference > 0 ? `+${row.difference}` : row.difference}
                           </span>
+                        )}
+                      </td>
+                      <td data-label={t.countedBy}>{row.countedByName ?? <span className="diff-empty">-</span>}</td>
+                      <td data-label={t.countedAt}>
+                        {row.updatedAt === null ? (
+                          <span className="diff-empty">-</span>
+                        ) : (
+                          formatTimestamp(row.updatedAt)
                         )}
                       </td>
                     </tr>

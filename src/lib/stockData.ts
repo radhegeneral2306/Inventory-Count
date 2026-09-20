@@ -11,6 +11,7 @@ import {
   setDoc,
   where,
   writeBatch,
+  type Timestamp,
   type Unsubscribe,
 } from 'firebase/firestore'
 import { db } from '../firebase'
@@ -114,10 +115,19 @@ export function listenStockCounts(
   const scoped = countedBy ? query(counts, where('countedBy', '==', countedBy)) : counts
   return onSnapshot(scoped, (snap) => {
     cb(
-      snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<StockCount, 'id'>),
-      })),
+      snap.docs.map((d) => {
+        const data = d.data()
+        // updatedAt is written via serverTimestamp(), which comes back as a
+        // Firestore Timestamp object, not the plain number the type declares.
+        const updatedAt = data.updatedAt as Timestamp | undefined
+        return {
+          id: d.id,
+          liveQty: data.liveQty as number,
+          countedBy: data.countedBy as string,
+          updatedAt: updatedAt ? updatedAt.toMillis() : 0,
+          assignedSection: (data.assignedSection as string | null) ?? null,
+        }
+      }),
     )
   })
 }

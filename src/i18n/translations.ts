@@ -50,6 +50,8 @@ const en = {
   tallyQty: 'Tally qty',
   difference: 'Difference',
   section: 'Section',
+  countedBy: 'Counted by',
+  countedAt: 'Counted at',
 
   countedOf: (done: number, total: number) => `${done} of ${total} counted`,
   totalItems: 'Items',
@@ -161,6 +163,8 @@ const roman: TranslationKeys = {
   tallyQty: 'Tally qty',
   difference: 'Farak',
   section: 'Section',
+  countedBy: 'Kisne gina',
+  countedAt: 'Kab gina',
 
   countedOf: (done: number, total: number) => `${total} mein se ${done} ho gaye`,
   totalItems: 'Kul items',
@@ -271,6 +275,8 @@ const hi: TranslationKeys = {
   tallyQty: 'Tally मात्रा',
   difference: 'फ़र्क',
   section: 'सेक्शन',
+  countedBy: 'किसने गिना',
+  countedAt: 'कब गिना',
 
   countedOf: (done: number, total: number) => `${total} में से ${done} हो गए`,
   totalItems: 'कुल आइटम',
