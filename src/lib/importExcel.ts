@@ -23,9 +23,12 @@ export interface ParseResult {
 
 /**
  * Tally's Stock Group Summary carries its hierarchy in cell formatting rather
- * than in the text: a bold name is a group heading, and an indented name is an
- * item sitting inside the heading above it. An item at indent 0 belongs
- * directly to the report's own group.
+ * than in the text, and nests to arbitrary depth (group inside group inside
+ * group). A row is a group heading either because Tally bolded it, or
+ * because the row right after it is indented deeper (a structural sign that
+ * rows are nested under it, since not every group heading in a deep export
+ * is bold). Everything else is a leaf item, filed under the nearest
+ * still-open group.
  *
  * SheetJS cannot see either signal (its community build reads no font or
  * alignment), which is why this uses ExcelJS.
@@ -37,11 +40,16 @@ export async function parseTallyExcel(file: File): Promise<ParseResult> {
   if (!sheet) return { items: [], groups: [], warnings: [] }
 
   const layout = readLayout(sheet)
-  const items: ParsedItem[] = []
-  const groups: ParsedGroup[] = []
-  const declaredByGroup = new Map<string, number | null>()
 
-  let currentGroup: string | null = null
+  interface Row {
+    name: string
+    indent: number
+    bold: boolean
+    qty: number | null
+    unit: string
+  }
+
+  const rows: Row[] = []
   let grandTotal: number | null = null
 
   for (let rowNumber = layout.firstDataRow; rowNumber <= sheet.rowCount; rowNumber += 1) {
@@ -56,27 +64,49 @@ export async function parseTallyExcel(file: File): Promise<ParseResult> {
       continue
     }
 
-    if (nameCell.font?.bold) {
-      currentGroup = name
-      if (!declaredByGroup.has(name)) {
-        declaredByGroup.set(name, qty)
-        groups.push({ name, declaredQty: qty })
+    rows.push({
+      name,
+      indent: nameCell.alignment?.indent ?? 0,
+      bold: !!nameCell.font?.bold,
+      qty,
+      unit: layout.unitColumn ? cellText(sheet.getCell(rowNumber, layout.unitColumn)) : '',
+    })
+  }
+
+  const items: ParsedItem[] = []
+  const groups: ParsedGroup[] = []
+  const seenGroups = new Set<string>()
+  const itemAncestors: string[][] = []
+  const stack: { name: string; indent: number }[] = []
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i]
+    while (stack.length > 0 && stack[stack.length - 1].indent >= row.indent) {
+      stack.pop()
+    }
+
+    const next = rows[i + 1]
+    const isGroup = row.bold || (next !== undefined && next.indent > row.indent)
+
+    if (isGroup) {
+      if (!seenGroups.has(row.name)) {
+        seenGroups.add(row.name)
+        groups.push({ name: row.name, declaredQty: row.qty })
       }
+      stack.push({ name: row.name, indent: row.indent })
       continue
     }
 
-    if (qty === null) continue
-
-    const indent = nameCell.alignment?.indent ?? 0
-    const groupName = indent > 0 && currentGroup ? currentGroup : layout.reportGroup
+    const groupName = stack.length > 0 ? stack[stack.length - 1].name : layout.reportGroup
 
     items.push({
-      itemName: name,
-      unit: layout.unitColumn ? cellText(sheet.getCell(rowNumber, layout.unitColumn)) : '',
-      tallyQty: qty,
+      itemName: row.name,
+      unit: row.unit,
+      tallyQty: row.qty ?? 0,
       groupName,
       sortIndex: items.length,
     })
+    itemAncestors.push(stack.map((s) => s.name))
   }
 
   // The report's own group only counts as a group when items actually landed in it.
@@ -86,22 +116,34 @@ export async function parseTallyExcel(file: File): Promise<ParseResult> {
     }
   }
 
-  return { items, groups, warnings: reconcile(items, groups, grandTotal) }
+  return { items, groups, warnings: reconcile(items, itemAncestors, groups, grandTotal) }
 }
 
 /**
  * Compares what was parsed against the subtotals Tally printed. A mismatch is
  * the signal that this export is shaped differently and the rule above has
  * misread it, so it is worth showing rather than swallowing.
+ *
+ * A group's declared subtotal has to be checked against every leaf item
+ * nested under it at any depth, not just items whose stored `groupName`
+ * equals it directly — items are filed under their nearest (most specific)
+ * group, so a top-level group's own items are usually several levels below
+ * it in the sheet.
  */
-function reconcile(items: ParsedItem[], groups: ParsedGroup[], grandTotal: number | null): string[] {
+function reconcile(
+  items: ParsedItem[],
+  itemAncestors: string[][],
+  groups: ParsedGroup[],
+  grandTotal: number | null,
+): string[] {
   const warnings: string[] = []
 
   for (const group of groups) {
     if (group.declaredQty === null) continue
-    const sum = items
-      .filter((i) => i.groupName === group.name)
-      .reduce((total, i) => total + i.tallyQty, 0)
+    let sum = 0
+    for (let i = 0; i < items.length; i += 1) {
+      if (itemAncestors[i].includes(group.name)) sum += items[i].tallyQty
+    }
     if (Math.abs(sum - group.declaredQty) > 0.001) {
       warnings.push(`${group.name}: Tally says ${group.declaredQty}, items add up to ${sum}`)
     }
