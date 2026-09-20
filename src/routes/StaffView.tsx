@@ -10,15 +10,20 @@ import type { StockCount, StockItem, StockSession } from '../types'
 
 type SaveState = 'saving' | 'saved' | 'error' | undefined
 
+/** Item tagged with the stock list it came from, so "All" can mix several lists and still know where to write each count. */
+type StaffItem = StockItem & { sessionId: string }
+
+const ALL_SESSIONS = '__all__'
+
 interface CountRowProps {
-  item: StockItem
+  item: StaffItem
   committedQty: number | null
   countLabel: string
   savingLabel: string
   savedLabel: string
   notSavedLabel: string
-  onPersist: (itemId: string, value: number, assignedSection: string | null) => Promise<void>
-  onClear: (itemId: string) => Promise<void>
+  onPersist: (sessionId: string, itemId: string, value: number, assignedSection: string | null) => Promise<void>
+  onClear: (sessionId: string, itemId: string) => Promise<void>
   registerInput: (itemId: string, el: HTMLInputElement | null) => void
   onEnterNext: (itemId: string) => void
 }
@@ -54,12 +59,12 @@ const CountRow = memo(function CountRow({
 
   const debouncedPersist = useDebouncedCallback((itemId: string, num: number) => {
     setSaveState('saved')
-    onPersist(itemId, num, item.assignedSection).catch(() => setSaveState('error'))
+    onPersist(item.sessionId, itemId, num, item.assignedSection).catch(() => setSaveState('error'))
   }, 600)
 
   const debouncedClear = useDebouncedCallback((itemId: string) => {
     setSaveState(undefined)
-    onClear(itemId).catch(() => setSaveState('error'))
+    onClear(item.sessionId, itemId).catch(() => setSaveState('error'))
   }, 600)
 
   function handleChange(raw: string) {
@@ -79,12 +84,12 @@ const CountRow = memo(function CountRow({
     const num = Number(value)
     if (value.trim() === '') {
       setSaveState(undefined)
-      onClear(item.id).catch(() => setSaveState('error'))
+      onClear(item.sessionId, item.id).catch(() => setSaveState('error'))
       return
     }
     if (Number.isNaN(num)) return
     setSaveState('saved')
-    onPersist(item.id, num, item.assignedSection).catch(() => setSaveState('error'))
+    onPersist(item.sessionId, item.id, num, item.assignedSection).catch(() => setSaveState('error'))
   }
 
   const filled = value.trim() !== ''
@@ -133,9 +138,9 @@ export function StaffView() {
   const online = useOnlineStatus()
 
   const [sessions, setSessions] = useState<StockSession[]>([])
-  const [sessionId, setSessionId] = useState<string>('')
-  const [items, setItems] = useState<StockItem[]>([])
-  const [counts, setCounts] = useState<StockCount[]>([])
+  const [sessionFilter, setSessionFilter] = useState<string>('')
+  const [itemsBySession, setItemsBySession] = useState<Map<string, StockItem[]>>(new Map())
+  const [countsBySession, setCountsBySession] = useState<Map<string, StockCount[]>>(new Map())
   const [search, setSearch] = useState('')
   const [pendingOnly, setPendingOnly] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -145,37 +150,56 @@ export function StaffView() {
     return listenSessions((all) => {
       const open = all.filter((s) => s.status === 'open')
       setSessions(open)
-      setSessionId((current) => current || open[0]?.id || '')
+      setSessionFilter((current) => current || open[0]?.id || '')
     })
   }, [])
 
+  // Every open list is listened to (not only the one currently shown), so
+  // switching to "All" doesn't need to wait on a fresh subscription.
+  const openSessionIdsKey = useMemo(() => sessions.map((s) => s.id).join(','), [sessions])
+
   useEffect(() => {
-    if (!sessionId) {
-      setItems([])
-      setCounts([])
+    const ids = openSessionIdsKey ? openSessionIdsKey.split(',') : []
+    if (ids.length === 0) {
+      setItemsBySession(new Map())
+      setCountsBySession(new Map())
       return
     }
-    const unsubItems = listenStockItems(sessionId, setItems)
-    const unsubCounts = listenStockCounts(sessionId, setCounts, profile?.uid)
-    return () => {
-      unsubItems()
-      unsubCounts()
+    const unsubs = ids.flatMap((id) => [
+      listenStockItems(id, (items) => setItemsBySession((m) => new Map(m).set(id, items))),
+      listenStockCounts(id, (counts) => setCountsBySession((m) => new Map(m).set(id, counts)), profile?.uid),
+    ])
+    return () => unsubs.forEach((unsub) => unsub())
+  }, [openSessionIdsKey, profile?.uid])
+
+  const activeSessionIds = useMemo(() => {
+    if (sessionFilter === ALL_SESSIONS) return sessions.map((s) => s.id)
+    return sessionFilter ? [sessionFilter] : []
+  }, [sessionFilter, sessions])
+
+  const myItems = useMemo(() => {
+    const combined: StaffItem[] = []
+    for (const id of activeSessionIds) {
+      const sessionItems = itemsBySession.get(id) ?? []
+      for (const item of sessionItems) {
+        if (item.assignedSection === null || item.assignedSection === profile?.fullName) {
+          combined.push({ ...item, sessionId: id })
+        }
+      }
     }
-  }, [sessionId, profile?.uid])
+    return combined
+  }, [activeSessionIds, itemsBySession, profile?.fullName])
 
-  const myItems = useMemo(
-    () =>
-      items.filter(
-        (item) => item.assignedSection === null || item.assignedSection === profile?.fullName,
-      ),
-    [items, profile?.fullName],
-  )
-
+  // Stock item document IDs are globally unique (Firestore auto-IDs), so a
+  // single count map works across several lists at once with no collisions.
   const committedById = useMemo(() => {
     const map = new Map<string, number>()
-    for (const c of counts) map.set(c.id, c.liveQty)
+    for (const id of activeSessionIds) {
+      const sessionCounts = countsBySession.get(id) ?? []
+      for (const c of sessionCounts) map.set(c.id, c.liveQty)
+    }
     return map
-  }, [counts])
+  }, [activeSessionIds, countsBySession])
 
   // Deliberately driven only by what is actually saved in Firestore, not by
   // what is mid-typed in a row: this is what recomputes on nearly every
@@ -197,7 +221,7 @@ export function StaffView() {
   /** Tally's own order is preserved, so groups come out in the order they were imported. */
   const sections = useMemo(() => {
     const order: string[] = []
-    const byGroup = new Map<string, StockItem[]>()
+    const byGroup = new Map<string, StaffItem[]>()
     for (const item of visibleItems) {
       const key = item.groupName || ''
       if (!byGroup.has(key)) {
@@ -214,19 +238,16 @@ export function StaffView() {
   }, [visibleItems, committedById])
 
   const handlePersist = useCallback(
-    (itemId: string, value: number, assignedSection: string | null) => {
+    (sessionId: string, itemId: string, value: number, assignedSection: string | null) => {
       if (!profile) return Promise.resolve()
       return setLiveCount(sessionId, itemId, value, profile.uid, assignedSection)
     },
-    [profile, sessionId],
+    [profile],
   )
 
-  const handleClear = useCallback(
-    (itemId: string) => {
-      return clearLiveCount(sessionId, itemId)
-    },
-    [sessionId],
-  )
+  const handleClear = useCallback((sessionId: string, itemId: string) => {
+    return clearLiveCount(sessionId, itemId)
+  }, [])
 
   const registerInput = useCallback((itemId: string, el: HTMLInputElement | null) => {
     inputsRef.current[itemId] = el
@@ -261,7 +282,8 @@ export function StaffView() {
         {sessions.length > 1 && (
           <label className="field-inline">
             {t.stockList}
-            <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+            <select value={sessionFilter} onChange={(e) => setSessionFilter(e.target.value)}>
+              <option value={ALL_SESSIONS}>{t.allLists}</option>
               {sessions.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -271,7 +293,7 @@ export function StaffView() {
           </label>
         )}
 
-        {sessionId && myItems.length > 0 && (
+        {sessionFilter && myItems.length > 0 && (
           <div className="sticky-tools">
             <div className="stat glass progress-card">
               <div className="progress-row">
@@ -306,7 +328,7 @@ export function StaffView() {
           </div>
         )}
 
-        {!sessionId && (
+        {!sessionFilter && (
           <div className="table-wrap glass">
             <div className="empty-state">
               <Tray size={32} />
@@ -315,7 +337,7 @@ export function StaffView() {
           </div>
         )}
 
-        {sessionId &&
+        {sessionFilter &&
           sections.map((section) => {
             const isCollapsed = collapsed[section.name] ?? false
             return (
@@ -358,7 +380,7 @@ export function StaffView() {
             )
           })}
 
-        {sessionId && myItems.length > 0 && visibleItems.length === 0 && (
+        {sessionFilter && myItems.length > 0 && visibleItems.length === 0 && (
           <div className="table-wrap glass">
             <div className="empty-state">
               <CheckCircle size={32} weight="fill" />

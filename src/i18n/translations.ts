@@ -36,6 +36,7 @@ const en = {
   usersTitle: 'Users',
 
   stockList: 'Stock list',
+  allLists: 'All lists',
   searchItems: 'Search items',
   sortBy: 'Sort by',
   ascending: 'low to high',
@@ -146,6 +147,7 @@ const roman: TranslationKeys = {
   usersTitle: 'Users',
 
   stockList: 'Stock list',
+  allLists: 'Saari lists',
   searchItems: 'Item dhundhein',
   sortBy: 'Sort karein',
   ascending: 'kam se zyada',
@@ -255,6 +257,7 @@ const hi: TranslationKeys = {
   usersTitle: 'यूज़र',
 
   stockList: 'स्टॉक लिस्ट',
+  allLists: 'सारी लिस्ट',
   searchItems: 'आइटम ढूंढें',
   sortBy: 'क्रम',
   ascending: 'कम से ज़्यादा',
